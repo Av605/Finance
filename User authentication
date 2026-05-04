@@ -3,28 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <title>Firebase Login</title>
+  <style>
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
 </head>
 
 <body style="font-family: Arial; text-align:center; margin-top:100px;">
-
   <h2>Sign Up / Login</h2>
 
-  <input type="email" id="email" placeholder="Email"><br><br>
-  <input type="password" id="password" placeholder="Password"><br><br>
-
-  <button onclick="signUp()">Sign Up</button>
-  <button onclick="login()">Login</button>
+  <form id="authForm">
+    <input type="email" id="email" placeholder="Email" required autocomplete="email"><br><br>
+    <input type="password" id="password" placeholder="Password" required autocomplete="current-password"><br><br>
+    <button type="button" id="signUpBtn" onclick="signUp()">Sign Up</button>
+    <button type="button" id="loginBtn" onclick="login()">Login</button>
+  </form>
 
   <p id="msg"></p>
 
-  <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getAuth,
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
@@ -34,56 +33,59 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getFirestore(app);
 
-    window.signUp = function () {
+    function setLoading(isLoading) {
+      document.getElementById("signUpBtn").disabled = isLoading;
+      document.getElementById("loginBtn").disabled = isLoading;
+    }
+
+    window.signUp = async function () {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
-      createUserWithEmailAndPassword(auth, email, password)
-        .then(() => {
-          document.getElementById("msg").innerText = "User Created!";
-        })
-        .catch(err => {
-          document.getElementById("msg").innerText = err.message;
+      if (!email || !password) {
+        document.getElementById("msg").innerText = "Please fill in all fields";
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        await setDoc(doc(db, "users", user.uid), {
+          email: user.email,
+          createdAt: new Date()
         });
+
+        document.getElementById("msg").innerText = "User Created & Saved!";
+      } catch (err) {
+        document.getElementById("msg").innerText = err.message;
+      } finally {
+        setLoading(false);
+      }
     };
 
-    window.login = function () {
+    window.login = async function () {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
-      signInWithEmailAndPassword(auth, email, password)
-        .then(() => {
-          document.getElementById("msg").innerText = "Login Successful!";
-        })
-        .catch(err => {
-          document.getElementById("msg").innerText = err.message;
-        });
-    };import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      if (!email || !password) {
+        document.getElementById("msg").innerText = "Please fill in all fields";
+        return;
+      }
 
-const db = getFirestore(app);
-
-window.signUp = function () {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  createUserWithEmailAndPassword(auth, email, password)
-    .then((userCredential) => {
-      const user = userCredential.user;
-
-      // Save user to database
-      setDoc(doc(db, "users", user.uid), {
-        email: user.email,
-        createdAt: new Date()
-      });
-
-      document.getElementById("msg").innerText = "User Created & Saved!";
-    })
-    .catch(err => {
-      document.getElementById("msg").innerText = err.message;
-    });
-};
+      setLoading(true);
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        document.getElementById("msg").innerText = "Login Successful!";
+      } catch (err) {
+        document.getElementById("msg").innerText = err.message;
+      } finally {
+        setLoading(false);
+      }
+    };
   </script>
-
 </body>
 </html>
