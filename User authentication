@@ -1,92 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Firebase Login</title>
-  <style>
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://stackpath.bootstrapcdn.com;">
+    <title>User Authentication</title>
 </head>
+<body>
+    <h1>User Authentication</h1>
+    <form id="auth-form" aria-label="User Authentication Form">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required aria-label="Email input">
 
-<body style="font-family: Arial; text-align:center; margin-top:100px;">
-  <h2>Sign Up / Login</h2>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required aria-label="Password input">
+        <div id="password-strength-meter" aria-label="Password strength feedback"></div>
 
-  <form id="authForm">
-    <input type="email" id="email" placeholder="Email" required autocomplete="email"><br><br>
-    <input type="password" id="password" placeholder="Password" required autocomplete="current-password"><br><br>
-    <button type="button" id="signUpBtn" onclick="signUp()">Sign Up</button>
-    <button type="button" id="loginBtn" onclick="login()">Login</button>
-  </form>
+        <button type="submit">Login</button>
+    </form>
 
-  <p id="msg"></p>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: 'YOUR_API_KEY',
+            authDomain: 'YOUR_AUTH_DOMAIN',
+            projectId: 'YOUR_PROJECT_ID',
+            storageBucket: 'YOUR_STORAGE_BUCKET',
+            messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+            appId: 'YOUR_APP_ID'
+        };
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth(app);
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "FINANCE_PROJECT.firebaseapp.com",
-      projectId: "SAVE"EM_PROJECT_ID",
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    function setLoading(isLoading) {
-      document.getElementById("signUpBtn").disabled = isLoading;
-      document.getElementById("loginBtn").disabled = isLoading;
-    }
-
-    window.signUp = async function () {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-
-      if (!email || !password) {
-        document.getElementById("msg").innerText = "Please fill in all fields";
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        await setDoc(doc(db, "users", user.uid), {
-          email: user.email,
-          createdAt: new Date()
+        document.getElementById('auth-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // User signed in
+                    console.log('User signed in:', userCredential.user);
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    console.error('Error during sign-in:', errorCode, errorMessage);
+                });
         });
 
-        document.getElementById("msg").innerText = "User Created & Saved!";
-      } catch (err) {
-        document.getElementById("msg").innerText = err.message;
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    window.login = async function () {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-
-      if (!email || !password) {
-        document.getElementById("msg").innerText = "Please fill in all fields";
-        return;
-      }
-
-      setLoading(true);
-      try {
-        signInWithEmailAndPassword(auth, email, password)
-  .then(() => {
-    window.location.href = "dashboard.html";
-  })
-        document.getElementById("msg").innerText = err.message;
-      } finally {
-        setLoading(false);
-      }
-    };
-  </script>
+        // Password strength validation
+        const passwordInput = document.getElementById('password');
+        passwordInput.addEventListener('input', function() {
+            const strengthText = document.getElementById('password-strength-meter');
+            const value = passwordInput.value;
+            if (value.length < 6) {
+                strengthText.textContent = 'Weak';
+            } else if (value.length < 10) {
+                strengthText.textContent = 'Fair';
+            } else {
+                strengthText.textContent = 'Strong';
+            }
+        });
+    </script>
 </body>
 </html>
