@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self';">
+    <title>User Authentication</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .error { color: red; }
+        .password-strength { color: green; }
+    </style>
+</head>
+<body>
+    <form id="authForm" aria-labelledby="authFormLabel" role="form">
+        <h2 id="authFormLabel">User Authentication</h2>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required aria-describedby="emailHelp">
+        <div id="emailHelp" class="error"></div>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required aria-describedby="passwordHelp">
+        <div id="passwordHelp" class="error"></div>
+        <div id="strengthIndicator" class="password-strength"></div>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js"></script>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            // Your Firebase credentials here
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        document.getElementById('authForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!validateEmail(email)) {
+                showError('Invalid email address.');
+                return;
+            }
+
+            if (!validatePassword(password)) {
+                showError('Password must be at least 6 characters long.');
+                return;
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Handle successful login
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    showError('Error: ' + errorMessage);
+                });
+        });
+
+        function validateEmail(email) {
+            const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            return re.test(String(email).toLowerCase());
+        }
+
+        function validatePassword(password) {
+            return password.length >= 6;
+        }
+
+        function showError(message) {
+            document.getElementById('passwordHelp').textContent = message;
+        }
+
+        document.getElementById('password').addEventListener('input', function() {
+            const strength = getPasswordStrength(this.value);
+            document.getElementById('strengthIndicator').textContent = 'Password strength: ' + strength;
+        });
+
+        function getPasswordStrength(password) {
+            // Simple password strength check
+            if (password.length < 6) return 'Too weak';
+            if (/[A-Z]/.test(password) && /[0-9]/.test(password)) return 'Strong';
+            return 'Medium';
+        }
+    </script>
+</body>
+</html>
